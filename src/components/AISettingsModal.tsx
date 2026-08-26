@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { AIConfig, AIProvider } from '../types.ts';
 import { AI_PROVIDERS, ProviderOption } from '../constants.ts';
+import { safeFetchJson } from '../utils/api.ts';
 
 interface AISettingsModalProps {
   isOpen: boolean;
@@ -61,11 +62,12 @@ export default function AISettingsModal({
       setBaseUrl(config.baseUrl || '');
       setTestResult(null);
 
-      // Fetch server key status
-      fetch('/api/ai/server-status')
-        .then(res => res.json())
-        .then(data => setServerKeys(data))
-        .catch(() => {});
+      // Fetch server key status safely
+      safeFetchJson<Record<string, boolean>>('/api/ai/server-status')
+        .then(data => setServerKeys(data || {}))
+        .catch(() => {
+          // In static hosting without backend, serverKeys remains empty
+        });
     }
   }, [isOpen, config]);
 
@@ -99,19 +101,61 @@ export default function AISettingsModal({
     };
 
     try {
-      const res = await fetch('/api/ai/test-connection', {
+      const data = await safeFetchJson<{ ok: boolean; message: string }>('/api/ai/test-connection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aiConfig: testConfig })
       });
-      const data = await res.json();
-      if (res.ok && data.ok) {
+      
+      if (data && data.ok) {
         setTestResult({ ok: true, message: data.message || 'Connection verified successfully!' });
       } else {
-        setTestResult({ ok: false, message: data.message || 'Failed to authenticate with provider.' });
+        setTestResult({ ok: false, message: data?.message || 'Failed to authenticate with provider.' });
       }
     } catch (err: any) {
-      setTestResult({ ok: false, message: err.message || 'Network error testing AI provider.' });
+      // If backend test failed, check if client API key was supplied and test direct if possible
+      const keyVal = apiKey.trim();
+      if (keyVal && selectedProvider === 'gemini') {
+        try {
+          const directRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(keyVal)}`);
+          if (directRes.ok) {
+            setTestResult({ ok: true, message: 'Google Gemini API Key is valid and active!' });
+            return;
+          }
+        } catch {}
+      } else if (keyVal && selectedProvider === 'openai') {
+        try {
+          const directRes = await fetch('https://api.openai.com/v1/models', {
+            headers: { 'Authorization': `Bearer ${keyVal}` }
+          });
+          if (directRes.ok) {
+            setTestResult({ ok: true, message: 'OpenAI API Key is valid and active!' });
+            return;
+          }
+        } catch {}
+      } else if (keyVal && selectedProvider === 'openrouter') {
+        try {
+          const directRes = await fetch('https://openrouter.ai/api/v1/auth/key', {
+            headers: { 'Authorization': `Bearer ${keyVal}` }
+          });
+          if (directRes.ok) {
+            setTestResult({ ok: true, message: 'OpenRouter API Key is valid and active!' });
+            return;
+          }
+        } catch {}
+      } else if (keyVal && selectedProvider === 'groq') {
+        try {
+          const directRes = await fetch('https://api.groq.com/openai/v1/models', {
+            headers: { 'Authorization': `Bearer ${keyVal}` }
+          });
+          if (directRes.ok) {
+            setTestResult({ ok: true, message: 'Groq API Key is valid and active!' });
+            return;
+          }
+        } catch {}
+      }
+
+      setTestResult({ ok: false, message: err?.message || 'Network error testing AI provider.' });
     } finally {
       setTesting(false);
     }

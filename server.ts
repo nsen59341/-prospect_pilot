@@ -380,8 +380,11 @@ async function extractEmails(url: string): Promise<string[]> {
   }
 }
 
+// API Router for flexible deployment on standard servers and Netlify serverless functions
+const apiRouter = express.Router();
+
 // API: Check Server Provider Key Availability
-app.get("/api/ai/server-status", (req, res) => {
+apiRouter.get("/ai/server-status", (req, res) => {
   res.json({
     gemini: Boolean(process.env.GEMINI_API_KEY),
     openai: Boolean(process.env.OPENAI_API_KEY),
@@ -393,7 +396,7 @@ app.get("/api/ai/server-status", (req, res) => {
 });
 
 // API: Test AI Provider Connection
-app.post("/api/ai/test-connection", async (req, res) => {
+apiRouter.post("/ai/test-connection", async (req, res) => {
   const { aiConfig } = req.body;
   try {
     const provider = aiConfig?.provider || 'gemini';
@@ -463,12 +466,12 @@ app.post("/api/ai/test-connection", async (req, res) => {
 });
 
 // API: Search Leads (Geoapify)
-app.post("/api/leads/search", async (req, res) => {
+apiRouter.post("/leads/search", async (req, res) => {
   const { niche, city, state, category } = req.body;
   const apiKey = process.env.GEOAPIFY_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "GEOAPIFY_API_KEY is not configured." });
+    return res.status(500).json({ error: "GEOAPIFY_API_KEY is not configured on the server." });
   }
 
   try {
@@ -511,7 +514,7 @@ app.post("/api/leads/search", async (req, res) => {
 });
 
 // API: Extract Contact (Deep crawl)
-app.post("/api/leads/extract-contact", async (req, res) => {
+apiRouter.post("/leads/extract-contact", async (req, res) => {
   const { website } = req.body;
   if (!website) return res.status(400).json({ error: "Website required" });
 
@@ -558,7 +561,7 @@ app.post("/api/leads/extract-contact", async (req, res) => {
 });
 
 // API: Audit Website (Visual Analysis with Selected AI Provider)
-app.post("/api/leads/audit", async (req, res) => {
+apiRouter.post("/leads/audit", async (req, res) => {
   const { website, name, aiConfig } = req.body;
   
   try {
@@ -595,7 +598,7 @@ app.post("/api/leads/audit", async (req, res) => {
 });
 
 // API: Generate Email (Selected AI Provider)
-app.post("/api/leads/generate-email", async (req, res) => {
+apiRouter.post("/leads/generate-email", async (req, res) => {
   const { lead, audit, aiConfig } = req.body;
   
   try {
@@ -610,6 +613,10 @@ app.post("/api/leads/generate-email", async (req, res) => {
     res.status(500).json({ error: msg });
   }
 });
+
+// Mount Router to support standard /api, Netlify Functions path, and root
+app.use("/api", apiRouter);
+app.use("/.netlify/functions/api", apiRouter);
 
 // Vite Middleware & Production Flow
 async function startServer() {
@@ -627,7 +634,14 @@ async function startServer() {
     });
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  // Bind to port if NOT running as serverless function (AWS Lambda / Netlify)
+  const isServerless = Boolean(
+    process.env.NETLIFY ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.LAMBDA_TASK_ROOT
+  );
+
+  if (!isServerless) {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
@@ -636,5 +650,6 @@ async function startServer() {
 
 startServer();
 
-// Serverless handler
+// Serverless handler for Netlify / AWS Lambda
+export { app };
 export const handler = serverless(app);

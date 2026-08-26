@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Lead, ProgressState, AIConfig } from './types.ts';
 import { US_CITIES, NICHES, AI_PROVIDERS } from './constants.ts';
 import AISettingsModal from './components/AISettingsModal.tsx';
+import { safeFetchJson } from './utils/api.ts';
 
 const DEFAULT_AI_CONFIG: AIConfig = {
   provider: 'gemini',
@@ -83,17 +84,15 @@ export default function App() {
     setLeads([]);
     try {
       const selectedNiche = NICHES.find(n => n.label === niche);
-      const response = await fetch('/api/leads/search', {
+      const data = await safeFetchJson<Lead[]>('/api/leads/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ niche, city, state, category: selectedNiche?.category })
       });
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      setLeads(data);
+      setLeads(data || []);
     } catch (err: any) {
       console.error(err);
-      alert(err?.message || "Search failed. Check your API key.");
+      alert(err?.message || "Search failed. Check your API key or server configuration.");
     } finally {
       setLoading(false);
     }
@@ -105,15 +104,22 @@ export default function App() {
 
     try {
       // 1. Extract Contact
-      const extractRes = await fetch('/api/leads/extract-contact', {
+      const extractData = await safeFetchJson<{ emails?: string[] }>('/api/leads/extract-contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ website: lead.website })
-      });
-      const { emails } = await extractRes.json();
+      }).catch(() => ({ emails: [] }));
+      const emails = extractData.emails || [];
       
       // 2. Audit Website with active AI provider
-      const auditRes = await fetch('/api/leads/audit', {
+      const audit = await safeFetchJson<{
+        score: number;
+        detail: string;
+        pains?: string[];
+        gaps?: string[];
+        screenshotUrl?: string;
+        error?: string;
+      }>('/api/leads/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -122,11 +128,14 @@ export default function App() {
           aiConfig
         })
       });
-      const audit = await auditRes.json();
       if (audit.error) throw new Error(audit.error);
 
       // 3. Generate Email with active AI provider
-      const emailRes = await fetch('/api/leads/generate-email', {
+      const draft = await safeFetchJson<{
+        subject?: string;
+        body?: string;
+        error?: string;
+      }>('/api/leads/generate-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -135,7 +144,6 @@ export default function App() {
           aiConfig
         })
       });
-      const draft = await emailRes.json();
       if (draft.error) throw new Error(draft.error);
 
       const updatedLead: Lead = {
