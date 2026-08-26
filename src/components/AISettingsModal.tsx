@@ -19,7 +19,8 @@ import {
   Sliders,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Globe
 } from 'lucide-react';
 import { AIConfig, AIProvider } from '../types.ts';
 import { AI_PROVIDERS, ProviderOption } from '../constants.ts';
@@ -44,6 +45,13 @@ export default function AISettingsModal({
   const [useCustomModel, setUseCustomModel] = useState<boolean>(Boolean(config.customModel));
   const [apiKey, setApiKey] = useState<string>(config.apiKey || '');
   const [baseUrl, setBaseUrl] = useState<string>(config.baseUrl || '');
+  const [geoapifyKey, setGeoapifyKey] = useState<string>(() => {
+    try {
+      return localStorage.getItem('prospectpilot_geoapify_key') || '';
+    } catch {
+      return '';
+    }
+  });
   const [showKey, setShowKey] = useState<boolean>(false);
   
   // Test connection state
@@ -170,6 +178,13 @@ export default function AISettingsModal({
       baseUrl: baseUrl.trim() || undefined,
       customModel: useCustomModel && customModelInput.trim() ? customModelInput.trim() : undefined
     };
+    try {
+      if (geoapifyKey.trim()) {
+        localStorage.setItem('prospectpilot_geoapify_key', geoapifyKey.trim());
+      } else {
+        localStorage.removeItem('prospectpilot_geoapify_key');
+      }
+    } catch {}
     onSave(newConfig);
     onClose();
   };
@@ -363,6 +378,32 @@ export default function AISettingsModal({
               </p>
             </div>
           )}
+
+          {/* Optional Geoapify Places Key */}
+          <div className="space-y-1.5 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Geoapify Places API Key</span>
+                <span className="text-[10px] text-slate-500 font-normal">(Optional)</span>
+              </label>
+              {serverKeys.geoapify && (
+                <span className="text-[10px] text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-900/40">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Server Configured
+                </span>
+              )}
+            </div>
+            <input
+              type="text"
+              placeholder={serverKeys.geoapify ? "Server key active. Enter here to override." : "e.g. 7a8b9c... (or leave blank for free auto-search)"}
+              value={geoapifyKey}
+              onChange={(e) => setGeoapifyKey(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            <p className="text-[10px] text-slate-400">
+              Leave blank to use the built-in free OpenStreetMap / US local directory search engine.
+            </p>
+          </div>
 
           {/* Connection Test Feedback */}
           {testResult && (
