@@ -118,3 +118,118 @@ export const NICHES = [
   { label: "Real Estate", category: "service.real_estate" },
   { label: "Marketing", category: "office.advertising" }
 ];
+
+export interface ProviderOption {
+  id: 'gemini' | 'openai' | 'anthropic' | 'openrouter' | 'groq' | 'custom';
+  name: string;
+  badge: string;
+  color: string;
+  models: { id: string; name: string; tag?: string }[];
+  defaultModel: string;
+  keyPlaceholder: string;
+  envKeyName: string;
+  defaultBaseUrl?: string;
+  description: string;
+}
+
+export const AI_PROVIDERS: ProviderOption[] = [
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    badge: 'Gemini 2.5',
+    color: 'indigo',
+    models: [
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', tag: 'Fast & Smart' },
+      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', tag: 'Deep Reasoning' },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', tag: 'Legacy Fast' },
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', tag: 'Legacy Pro' }
+    ],
+    defaultModel: 'gemini-2.5-flash',
+    keyPlaceholder: 'AIzaSy...',
+    envKeyName: 'GEMINI_API_KEY',
+    description: 'Native Google GenAI with high-speed visual screenshot analysis.'
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    badge: 'GPT-4o',
+    color: 'emerald',
+    models: [
+      { id: 'gpt-4o', name: 'GPT-4o', tag: 'Flagship Multimodal' },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', tag: 'Affordable & Quick' },
+      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', tag: 'High Precision' },
+      { id: 'o3-mini', name: 'o3 Mini', tag: 'Reasoning' }
+    ],
+    defaultModel: 'gpt-4o-mini',
+    keyPlaceholder: 'sk-proj-...',
+    envKeyName: 'OPENAI_API_KEY',
+    defaultBaseUrl: 'https://api.openai.com/v1',
+    description: 'OpenAI GPT-4o family with vision parsing and email drafting.'
+  },
+  {
+    id: 'anthropic',
+    name: 'Anthropic Claude',
+    badge: 'Claude 3.7',
+    color: 'amber',
+    models: [
+      { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet', tag: 'Hybrid Thinking' },
+      { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', tag: 'Top Vision & Copy' },
+      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', tag: 'Ultra-Fast' }
+    ],
+    defaultModel: 'claude-3-5-sonnet-20241022',
+    keyPlaceholder: 'sk-ant-api03-...',
+    envKeyName: 'ANTHROPIC_API_KEY',
+    defaultBaseUrl: 'https://api.anthropic.com/v1',
+    description: 'Claude models with nuanced visual assessment and peer-to-peer copywriting.'
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    badge: 'Unified Router',
+    color: 'purple',
+    models: [
+      { id: 'openai/gpt-4o', name: 'OpenAI GPT-4o' },
+      { id: 'anthropic/claude-3.5-sonnet', name: 'Anthropic Claude 3.5 Sonnet' },
+      { id: 'google/gemini-2.5-flash', name: 'Google Gemini 2.5 Flash' },
+      { id: 'meta-llama/llama-3.2-90b-vision-instruct', name: 'Llama 3.2 90B Vision' },
+      { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3' }
+    ],
+    defaultModel: 'openai/gpt-4o',
+    keyPlaceholder: 'sk-or-v1-...',
+    envKeyName: 'OPENROUTER_API_KEY',
+    defaultBaseUrl: 'https://openrouter.ai/api/v1',
+    description: 'Universal gateway to over 200+ models with one unified API key.'
+  },
+  {
+    id: 'groq',
+    name: 'Groq Cloud',
+    badge: 'Ultra Fast',
+    color: 'orange',
+    models: [
+      { id: 'llama-3.2-90b-vision-preview', name: 'Llama 3.2 90B Vision', tag: 'Vision & Fast' },
+      { id: 'llama-3.2-11b-vision-preview', name: 'Llama 3.2 11B Vision', tag: 'Ultra Lightweight' },
+      { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B Versatile', tag: 'Text Powerhouse' }
+    ],
+    defaultModel: 'llama-3.2-90b-vision-preview',
+    keyPlaceholder: 'gsk_...',
+    envKeyName: 'GROQ_API_KEY',
+    defaultBaseUrl: 'https://api.groq.com/openai/v1',
+    description: 'LPUs offering lightning-fast speeds for instant audits and drafts.'
+  },
+  {
+    id: 'custom',
+    name: 'Custom / Ollama / Local',
+    badge: 'Self-Hosted',
+    color: 'sky',
+    models: [
+      { id: 'custom', name: 'Custom Model ID' },
+      { id: 'llava', name: 'Ollama LLaVA (Vision)' },
+      { id: 'llama3.2-vision', name: 'Ollama LLaMA 3.2 Vision' }
+    ],
+    defaultModel: 'custom',
+    keyPlaceholder: 'API Key (leave blank if local/unauthenticated)',
+    envKeyName: 'CUSTOM_AI_API_KEY',
+    defaultBaseUrl: 'http://localhost:11434/v1',
+    description: 'Connect any OpenAI-compatible API endpoint, local Ollama, vLLM, or LM Studio.'
+  }
+];
